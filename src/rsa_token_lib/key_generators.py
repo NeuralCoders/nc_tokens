@@ -1,9 +1,10 @@
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from typing import Tuple
+from .interfaces import KeyPairGenerator
 
 
-class RSAKeyPairGenerator:
+class RSAKeyPairGenerator(KeyPairGenerator):
     """
     Generates RSA key pairs.
     """
