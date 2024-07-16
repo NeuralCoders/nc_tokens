@@ -5,9 +5,7 @@ from .interfaces import KeyPairGenerator
 
 
 class RSAKeyPairGenerator(KeyPairGenerator):
-    """
-    Generates RSA key pairs.
-    """
+    """Generates RSA key pairs."""
 
     def __init__(self, public_exponent: int = 65537, key_size: int = 2048):
         self.public_exponent = public_exponent
@@ -18,7 +16,6 @@ class RSAKeyPairGenerator(KeyPairGenerator):
         Generates a new RSA key pair with a specified public exponent.
         :return: private key and public key
         """
-
         private_key = rsa.generate_private_key(
             public_exponent=self.public_exponent,
             key_size=self.key_size,

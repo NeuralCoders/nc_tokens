@@ -40,7 +40,6 @@ class TestRSAKeyPairGenerator(unittest.TestCase):
         Test that custom key generation works as espected
         :return:
         """
-
         custom_generator = RSAKeyPairGenerator(
             public_exponent=3,
             key_size=3072
