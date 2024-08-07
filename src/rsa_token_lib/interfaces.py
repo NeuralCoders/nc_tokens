@@ -24,3 +24,18 @@ class TokenDecoder(ABC):
     def decode(self, token: str, public_key: rsa.RSAPublicKey) -> Dict:
         """Decodes payload using public key."""
         raise NotImplementedError
+
+
+class KeySerializer(ABC):
+    @staticmethod
+    @abstractmethod
+    def serialize_private_key(
+            private_key: rsa.RSAPrivateKey,
+            password: bytes
+    ) -> bytes:
+        raise NotImplementedError
+
+    @staticmethod
+    @abstractmethod
+    def serialize_public_key(public_key: rsa.RSAPublicKey) -> bytes:
+        raise NotImplementedError
