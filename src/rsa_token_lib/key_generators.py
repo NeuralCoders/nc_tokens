@@ -2,7 +2,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from typing import Tuple
-from .interfaces import KeyPairGenerator, KeySerializer
+from .interfaces import KeyPairGenerator, KeySerializer, KeyPersistence
 
 
 class RSAKeyPairGenerator(KeyPairGenerator):
@@ -37,7 +37,7 @@ class PEMKeySerializer(KeySerializer):
         Serializes a private key into a PEM format.
         :param private_key: private key
         :param password: password
-        :return:
+        :return: PEM formatted private key in bytes
         """
         return private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -52,9 +52,33 @@ class PEMKeySerializer(KeySerializer):
         """
         Serializes a public key into a PEM format.
         :param public_key: public key
-        :return:
+        :return: PEM formatted public key in bytes
         """
         return public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
+
+
+class FileKeyPersistence(KeyPersistence):
+
+    @staticmethod
+    def save_key(key_bytes: bytes, filename: str) -> None:
+        """
+        Saves a key pair to a file.
+        :param key_bytes: key in bytes
+        :param filename: filename and file folder
+        :return:
+        """
+        with open(filename, 'wb') as key_file:
+            key_file.write(key_bytes)
+
+    @staticmethod
+    def load_key(filename: str) -> bytes:
+        """
+        Loads a key from a file.
+        :param filename: filename and file folder where keys are stored
+        :return: the file from a directory
+        """
+        with open(filename, 'rb') as key_file:
+            return key_file.read()

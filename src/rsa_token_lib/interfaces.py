@@ -39,3 +39,16 @@ class KeySerializer(ABC):
     @abstractmethod
     def serialize_public_key(public_key: rsa.RSAPublicKey) -> bytes:
         raise NotImplementedError
+
+
+class KeyPersistence(ABC):
+
+    @staticmethod
+    @abstractmethod
+    def save_key(key_bytes: bytes, filename: str):
+        raise NotImplementedError
+
+    @staticmethod
+    @abstractmethod
+    def load_key(filename: str):
+        raise NotImplementedError
