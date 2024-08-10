@@ -1,118 +1,85 @@
 import unittest
-from typing import Optional, Dict
-from src.rsa_token_lib import JWTEncoder, JWTDecoder, RSAKeyPairGenerator
-from src.token_manager import TokenManager
+from unittest.mock import Mock, patch
+from src.token_manager.token_management import TokenManager
+from src.rsa_token_lib import KeyPairGenerator
+from src.token_manager.token_encoder_decoder import JWTEncoder, JWTDecoder
+from src.token_manager.interfaces import Authenticator
 
 
-class Authenticator:
-
-    @staticmethod
-    def authenticate(username: str, password: str) -> Optional[Dict]:
-        if username == "user" and password == "password":
-            return {"user_id": 123, "username": username}
-        return None
-
-
-class TestJWTManager(unittest.TestCase):
+class TestTokenManager(unittest.TestCase):
     def setUp(self):
-        self.key_generator = RSAKeyPairGenerator()
-        self.private_key, self.public_key = self.key_generator.generate_keys()
-        self.encoder = JWTEncoder()
-        self.decoder = JWTDecoder()
-        self.authenticator = Authenticator()
+        self.key_management = Mock(spec=KeyPairGenerator)
+        self.encoder = Mock(spec=JWTEncoder)
+        self.decoder = Mock(spec=JWTDecoder)
+        self.authenticator = Mock(spec=Authenticator)
+
+        self.private_key = Mock()
+        self.public_key = Mock()
+        self.key_management.load_keys.return_value = (
+        self.private_key, self.public_key)
+
         self.token_manager = TokenManager(
-            self.key_generator,
+            self.key_management,
             self.encoder,
             self.decoder,
             self.authenticator
         )
 
-    def test_jwt_encoder(self):
-        """Test JWT encoder."""
-        payload = {"user_id": 123, "username": "testuser"}
-        token = self.encoder.encode(payload, self.private_key)
-        self.assertIsInstance(token, str)
-        self.assertEqual(token.count('.'), 2)
+    def test_init(self):
+        # ---------------------------------------------------------------------
+        # Verify that the keys are loaded during initialization
+        # ---------------------------------------------------------------------
+        self.key_management.load_keys.assert_called_once()
+        self.assertEqual(self.token_manager.private_key, self.private_key)
+        self.assertEqual(self.token_manager.public_key, self.public_key)
 
-    def test_jwt_decoder_valid_token(self):
-        """Test JWT decoder valid token."""
-        payload = {"user_id": 123, "username": "testuser"}
-        token = self.encoder.encode(payload, self.private_key)
-        decoded_payload = self.decoder.decode(token, self.public_key)
-        self.assertEqual(decoded_payload, payload)
+    def test_create_user_token_success(self):
+        username = "testuser"
+        password = "testpass"
+        user_data = {"user_id": 1, "username": username}
+        self.authenticator.authenticate.return_value = user_data
+        self.encoder.encode.return_value = "encoded_token"
 
-    def test_jwt_decoder_invalid_token(self):
-        """test JWT decoder invalid token."""
-        invalid_token = "invalid.token.here"
-        with self.assertRaises(ValueError):
-            self.decoder.decode(invalid_token, self.public_key)
+        token = self.token_manager.create_user_token(username, password)
 
-    def test_token_manager_create_token_valid_credentials(self):
-        """Test token manager creating a token."""
-        token = self.token_manager.create_user_token(
-            "user",
-            "password"
+        # ---------------------------------------------------------------------
+        # Verify that the token is created correctly when authentication succeeds
+        # ---------------------------------------------------------------------
+        self.authenticator.authenticate.assert_called_once_with(username,
+                                                                password)
+        self.encoder.encode.assert_called_once_with(
+            {"user_id": 1, "username": username},
+            self.private_key
         )
-        self.assertIsInstance(token, str)
-        self.assertEqual(token.count('.'), 2)
+        self.assertEqual(token, "encoded_token")
 
-    def test_token_manager_create_token_invalid_credentials(self):
-        """Test token manager creating a token."""
-        token = self.token_manager.create_user_token(
-            "invalid_user",
-            "invalid_password"
-        )
+    def test_create_user_token_failure(self):
+        username = "testuser"
+        password = "wrongpass"
+        self.authenticator.authenticate.return_value = None
+
+        token = self.token_manager.create_user_token(username, password)
+
+        # ---------------------------------------------------------------------
+        # Verify that no token is created when authentication fails
+        # ---------------------------------------------------------------------
+        self.authenticator.authenticate.assert_called_once_with(username,
+                                                                password)
+        self.encoder.encode.assert_not_called()
         self.assertIsNone(token)
 
-    def test_token_manager_validate_token_valid(self):
-        """Test token manager validation."""
-        token = self.token_manager.create_user_token(
-            "user",
-            "password"
-        )
-        decoded_payload = self.token_manager.validate_token(token)
-        self.assertIsInstance(decoded_payload, dict)
-        self.assertIn("user_id", decoded_payload)
-        self.assertIn("username", decoded_payload)
+    def test_validate_token(self):
+        token = "test_token"
+        decoded_payload = {"user_id": 1, "username": "testuser"}
+        self.decoder.decode.return_value = decoded_payload
 
-    def test_token_manager_validate_token_invalid(self):
-        """Test token manager validation."""
-        invalid_token = "invalid.token.here"
-        with self.assertRaises(ValueError):
-            self.token_manager.validate_token(invalid_token)
-
-    def test_token_manager_end_to_end(self):
-        """Test token manager end-to-end as an endpoint or user"""
-        # ---------------------------------------------------------------------
-        # Verify token
-        # ---------------------------------------------------------------------
-        token = self.token_manager.create_user_token(
-            "user",
-            "password"
-        )
-        self.assertIsNotNone(token)
+        result = self.token_manager.validate_token(token)
 
         # ---------------------------------------------------------------------
-        # Validate token
+        # Verify that the token is correctly validated
         # ---------------------------------------------------------------------
-        decoded_payload = self.token_manager.validate_token(token)
-        self.assertEqual(decoded_payload["username"], "user")
-        self.assertIn("user_id", decoded_payload)
-
-        # ---------------------------------------------------------------------
-        # Validate an invalid token
-        # ---------------------------------------------------------------------
-        with self.assertRaises(ValueError):
-            self.token_manager.validate_token("invalid.token.here")
-
-        # ---------------------------------------------------------------------
-        # Try to create a token with invalid credentials
-        # ---------------------------------------------------------------------
-        invalid_token = self.token_manager.create_user_token(
-            "invalid_user",
-            "invalid_password"
-        )
-        self.assertIsNone(invalid_token)
+        self.decoder.decode.assert_called_once_with(token, self.public_key)
+        self.assertEqual(result, decoded_payload)
 
 
 if __name__ == '__main__':
