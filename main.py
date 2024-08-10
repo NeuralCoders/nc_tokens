@@ -1,5 +1,5 @@
-from src.execution_library import ExecutionContainer, AppConfig
+from src.execution_library import ExecutionContainer
 
 if __name__ == '__main__':
-    execute = ExecutionContainer(config=AppConfig())
+    execute = ExecutionContainer()
     print(execute.create_token(username="user", password="password"))

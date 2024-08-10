@@ -1,7 +1,7 @@
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from typing import Dict, Tuple
-from .interfaces import TokenEncoder, TokenDecoder
+from src.rsa_token_lib.interfaces import TokenEncoder, TokenDecoder
 import json
 import base64
 

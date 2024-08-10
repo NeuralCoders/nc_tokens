@@ -1,3 +1,3 @@
 from .token_management import TokenManager
 from .interfaces import Authenticator
-from .key_management import KeyManagement
+from .token_encoder_decoder import JWTDecoder, JWTEncoder

@@ -1,13 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Tuple, Any
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 class ExecutionContainerCreator(ABC):
 
     @abstractmethod
-    def initialize_keys(self) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def load_keys(self) -> Tuple[Any, Any]:
+    def create_token(self, username: str, password: str) -> str:
         raise NotImplementedError

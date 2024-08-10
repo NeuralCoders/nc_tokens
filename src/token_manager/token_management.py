@@ -1,18 +1,19 @@
-from ..rsa_token_lib import JWTEncoder, JWTDecoder
+from .token_encoder_decoder import JWTEncoder, JWTDecoder
 from typing import Optional, Dict
 from .interfaces import Authenticator
+from src.rsa_token_lib import KeyPairGenerator
 
 
 class TokenManager:
     """Token management class"""
     def __init__(
             self,
-            execution_container,
+            key_management: KeyPairGenerator,
             encoder: JWTEncoder,
             decoder: JWTDecoder,
             authenticator: Authenticator
     ):
-        self.execution = execution_container
+        self.key_management = key_management
         self.encoder = encoder
         self.decoder = decoder
         self.authenticator = authenticator
@@ -21,9 +22,13 @@ class TokenManager:
         self._load_keys()
 
     def _load_keys(self):
-        self.private_key, self.public_key = self.execution.load_keys()
+        """
+        Load private and public keys
+        :return: private and public keys
+        """
+        self.private_key, self.public_key = self.key_management.load_keys()
 
-    def create_token(self, username: str, password: str) -> Optional[str]:
+    def create_user_token(self, username: str, password: str) -> Optional[str]:
         """
         Creates a new token with the given username and password.
         :param username: username

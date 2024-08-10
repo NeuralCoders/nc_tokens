@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Any
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
@@ -9,6 +9,10 @@ class KeyPairGenerator(ABC):
     @abstractmethod
     def generate_keys(self) -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
         """Generates RSAPrivateKey and RSAPublicKey function"""
+        raise NotImplementedError
+
+    def load_keys(self) -> Tuple[Any, Any]:
+        """Loads RSAPrivateKey and RSAPublicKey"""
         raise NotImplementedError
 
 

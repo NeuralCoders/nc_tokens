@@ -49,7 +49,7 @@ class TestJWTManager(unittest.TestCase):
 
     def test_token_manager_create_token_valid_credentials(self):
         """Test token manager creating a token."""
-        token = self.token_manager.create_token(
+        token = self.token_manager.create_user_token(
             "user",
             "password"
         )
@@ -58,7 +58,7 @@ class TestJWTManager(unittest.TestCase):
 
     def test_token_manager_create_token_invalid_credentials(self):
         """Test token manager creating a token."""
-        token = self.token_manager.create_token(
+        token = self.token_manager.create_user_token(
             "invalid_user",
             "invalid_password"
         )
@@ -66,7 +66,7 @@ class TestJWTManager(unittest.TestCase):
 
     def test_token_manager_validate_token_valid(self):
         """Test token manager validation."""
-        token = self.token_manager.create_token(
+        token = self.token_manager.create_user_token(
             "user",
             "password"
         )
@@ -86,7 +86,7 @@ class TestJWTManager(unittest.TestCase):
         # ---------------------------------------------------------------------
         # Verify token
         # ---------------------------------------------------------------------
-        token = self.token_manager.create_token(
+        token = self.token_manager.create_user_token(
             "user",
             "password"
         )
@@ -108,7 +108,7 @@ class TestJWTManager(unittest.TestCase):
         # ---------------------------------------------------------------------
         # Try to create a token with invalid credentials
         # ---------------------------------------------------------------------
-        invalid_token = self.token_manager.create_token(
+        invalid_token = self.token_manager.create_user_token(
             "invalid_user",
             "invalid_password"
         )
