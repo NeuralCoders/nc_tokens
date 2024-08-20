@@ -1,4 +1,4 @@
-from src.execution_library import TokenCreatorManager
+from src.token_creator import TokenCreatorManager
 
 if __name__ == '__main__':
     execute = TokenCreatorManager(
