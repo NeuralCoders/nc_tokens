@@ -1,16 +1,15 @@
-# This is a sample Python script.
+from src.token_creator import TokenCreatorManager
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    execute = TokenCreatorManager(
+        spaces_bucket="dev-portal-web-esph",
+        spaces_region="nyc3",
+        access_key_id="DO00VUJUDJ3RHXHG7FMV",
+        secret_access_key="4z0rpdPqAmysgITyPk+/MYEwoEzMBuqIBvLmECjxpbU",
+    )
+    token = execute.create_user_token(
+        username="testing",
+        password="password"
+    )
+    print(token)
+    print(execute.validate_token(token))
