@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from typing import Dict, Tuple
 from src.rsa_token_lib.interfaces import TokenEncoder, TokenDecoder
 import json
 import base64
+import time
 
 
 class JWTEncoder(TokenEncoder):
@@ -41,6 +43,12 @@ class JWTEncoder(TokenEncoder):
             signature_input: bytes,
             private_key: rsa.RSAPrivateKey
     ) -> str:
+        """
+        Create signature for the token
+        :param signature_input: in bytes of data
+        :param private_key: private key
+        :return:
+        """
         signature = private_key.sign(
             signature_input,
             padding.PKCS1v15(),
@@ -48,21 +56,44 @@ class JWTEncoder(TokenEncoder):
         )
         return self._base64url_encode(signature)
 
-    def encode(self, payload: Dict, private_key: rsa.RSAPrivateKey) -> str:
+    def encode(
+            self,
+            payload: Dict,
+            private_key: rsa.RSAPrivateKey,
+            token_type: str
+    ) -> str:
         """
-        Encode payload.
+        Encode payload with expiration time.
         :param payload: payload
         :param private_key: private key with RSAPrivateKey
+        :param token_type: 'service' or 'user'
         :return: encoded string payload
         """
+        expiration_time = self._calculate_expiration_time(token_type)
+        payload['exp'] = expiration_time
+
         header = self._create_header()
         encoded_header, encoded_payload = self._encode_parts(header, payload)
         signature_input = f"{encoded_header}.{encoded_payload}".encode()
         encoded_signature = self._create_signature(
-            signature_input,
-            private_key
+            signature_input, private_key
         )
         return f"{encoded_header}.{encoded_payload}.{encoded_signature}"
+
+    @staticmethod
+    def _calculate_expiration_time(token_type: str) -> int:
+        """
+        Calculate expiration time based on token type.
+        :param token_type: 'service' or 'user'
+        :return: expiration time as Unix timestamp
+        """
+        if token_type == 'service':
+            expiration = datetime.utcnow() + timedelta(minutes=15)
+        elif token_type == 'user':
+            expiration = datetime.utcnow() + timedelta(seconds=10)
+        else:
+            raise ValueError("Invalid token type")
+        return int(expiration.timestamp())
 
 
 class JWTDecoder(TokenDecoder):
@@ -122,7 +153,7 @@ class JWTDecoder(TokenDecoder):
 
     def decode(self, token: str, public_key: rsa.RSAPublicKey) -> Dict:
         """
-        Decode token.
+        Decode token and verify expiration.
         :param token: token
         :param public_key: public key
         :return: decoded payload
@@ -135,6 +166,22 @@ class JWTDecoder(TokenDecoder):
 
             self._verify_signature(signature_input, signature, public_key)
 
-            return self._decode_payload(payload_b64)
+            payload = self._decode_payload(payload_b64)
+            self._verify_expiration(payload)
+
+            return payload
         except Exception as e:
             raise ValueError(f"Invalid token: {str(e)}")
+
+    @staticmethod
+    def _verify_expiration(payload: Dict):
+        """
+        Verify token expiration.
+        :param payload: decoded payload
+        """
+        exp = payload.get('exp')
+        if not exp:
+            raise ValueError("Token has no expiration")
+
+        if int(datetime.utcnow().timestamp()) > exp:
+            raise ValueError("Token has expired")

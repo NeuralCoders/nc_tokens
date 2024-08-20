@@ -5,20 +5,10 @@ from src.token_manager import TokenManager, JWTDecoder, JWTEncoder
 from .interfaces import ExecutionContainerCreator
 
 
-class Authenticator:
-
-    @staticmethod
-    def authenticate(username: str, password: str) -> Optional[Dict]:
-        if username == "user" and password == "password":
-            return {"user_id": 123, "username": username}
-        return None
-
-
 class ExecutionContainer(ExecutionContainerCreator):
     def __init__(self):
         self.encoder = JWTEncoder()
         self.decoder = JWTDecoder()
-        self.authenticator = Authenticator()
         self.key_serializer = PEMKeySerializer()
         self.key_persistence = FileKeyPersistence()
         self.key_management = RSAKeyPairGenerator(
@@ -31,9 +21,14 @@ class ExecutionContainer(ExecutionContainerCreator):
         return TokenManager(
             self.key_management,
             self.encoder,
-            self.decoder,
-            self.authenticator
+            self.decoder
         )
 
-    def create_token(self, username: str, password: str) -> Optional[str]:
+    def create_user_token(self, username: str, password: str) -> Optional[str]:
         return self.token_manager.create_user_token(username, password)
+
+    def create_service_token(self, service_id: str) -> Optional[str]:
+        return self.token_manager.create_service_token(service_id)
+
+    def validate_token(self, token: str) -> bool:
+        return self.token_manager.validate_token(token)

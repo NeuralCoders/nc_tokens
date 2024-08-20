@@ -18,7 +18,10 @@ class KeyPairGenerator(ABC):
 
 class TokenEncoder(ABC):
     @abstractmethod
-    def encode(self, payload: Dict, private_key: rsa.RSAPrivateKey) -> str:
+    def encode(self,
+               payload: Dict,
+               private_key: rsa.RSAPrivateKey,
+               token_type: str) -> str:
         """Encodes payload using private key."""
         raise NotImplementedError
 

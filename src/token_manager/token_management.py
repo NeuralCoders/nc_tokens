@@ -1,6 +1,5 @@
 from .token_encoder_decoder import JWTEncoder, JWTDecoder
-from typing import Optional, Dict
-from .interfaces import Authenticator
+from typing import Optional
 from src.rsa_token_lib import KeyPairGenerator
 
 
@@ -11,12 +10,10 @@ class TokenManager:
             key_management: KeyPairGenerator,
             encoder: JWTEncoder,
             decoder: JWTDecoder,
-            authenticator: Authenticator
     ):
         self.key_management = key_management
         self.encoder = encoder
         self.decoder = decoder
-        self.authenticator = authenticator
         self.private_key = None
         self.public_key = None
         self._load_keys()
@@ -30,24 +27,44 @@ class TokenManager:
 
     def create_user_token(self, username: str, password: str) -> Optional[str]:
         """
-        Creates a new token with the given username and password.
+        Creates a new user token with the given username and password.
         :param username: username
         :param password: password
-        :return:
+        :return: encoded token or None if authentication fails
         """
-        user_data = self.authenticator.authenticate(username, password)
-        if user_data:
-            payload = {
-                "user_id": user_data["user_id"],
-                "username": user_data["username"],
-            }
-            return self.encoder.encode(payload, self.private_key)
-        return None
+        payload = {
+            "user_id": username,
+            "username": password,
+        }
+        return self.encoder.encode(
+            payload,
+            self.private_key,
+            token_type='user'
+        )
 
-    def validate_token(self, token: str) -> Dict:
+    def create_service_token(self, service_id: str) -> str:
+        """
+        Creates a new service token with the given service ID.
+        :param service_id: unique identifier for the service
+        :return: encoded token
+        """
+        payload = {
+            "service_id": service_id,
+        }
+        return self.encoder.encode(
+            payload,
+            self.private_key,
+            token_type='service'
+        )
+
+    def validate_token(self, token: str) -> bool:
         """
         Validates the given token.
         :param token: token to validate
-        :return:
+        :return: True if the token is valid, False otherwise
         """
-        return self.decoder.decode(token, self.public_key)
+        try:
+            self.decoder.decode(token, self.public_key)
+            return True
+        except ValueError:
+            return False

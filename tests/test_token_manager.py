@@ -43,13 +43,29 @@ class TestTokenManager(unittest.TestCase):
         token = self.token_manager.create_user_token(username, password)
 
         # ---------------------------------------------------------------------
-        # Verify that the token is created correctly when authentication succeeds
+        # Verify that the token is created correctly when authentication
+        # succeeds
         # ---------------------------------------------------------------------
         self.authenticator.authenticate.assert_called_once_with(username,
                                                                 password)
         self.encoder.encode.assert_called_once_with(
             {"user_id": 1, "username": username},
-            self.private_key
+            self.private_key,
+            token_type="user"
+        )
+        self.assertEqual(token, "encoded_token")
+
+    def test_create_service_token_success(self):
+        service_id = "1"
+        self.encoder.encode.return_value = "encoded_token"
+
+        token = self.token_manager.create_service_token(service_id)
+
+        # Verify that the token is created correctly
+        self.encoder.encode.assert_called_once_with(
+            {"service_id": service_id},
+            self.private_key,
+            token_type="service"
         )
         self.assertEqual(token, "encoded_token")
 
@@ -79,7 +95,7 @@ class TestTokenManager(unittest.TestCase):
         # Verify that the token is correctly validated
         # ---------------------------------------------------------------------
         self.decoder.decode.assert_called_once_with(token, self.public_key)
-        self.assertEqual(result, decoded_payload)
+        self.assertEqual(result, True)
 
 
 if __name__ == '__main__':
