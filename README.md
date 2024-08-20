@@ -29,7 +29,7 @@ pip install git+https://github.com/NeuralCoders/nc_tokens.git
 - Call the function `TokenCreatorManager` in your python code from this library and use it like: 
 
 ```python
-from token_creator import TokenCreatorManager
+from nc_tokens.token_creator import TokenCreatorManager
 
 token_manager = TokenCreatorManager(
         spaces_bucket="<spaces bucket name>",
