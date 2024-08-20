@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 from botocore.exceptions import ClientError
 from cryptography.hazmat.primitives.asymmetric import rsa
-from src.rsa_token_lib import SpacesConfig, SpacesKeyLoader
+from nc_tokens.rsa_token_lib import SpacesConfig, SpacesKeyLoader
 
 
 class TestSpacesKeyLoader(unittest.TestCase):

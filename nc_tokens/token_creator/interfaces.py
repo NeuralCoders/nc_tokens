@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 class TokenCreator(ABC):
