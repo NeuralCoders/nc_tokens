@@ -1,3 +1,2 @@
-from .interfaces import KeyPairGenerator, KeySerializer, KeyPersistence
-from .key_generators import (RSAKeyPairGenerator, FileKeyPersistence,
-                             PEMKeySerializer)
+from .interfaces import KeyLoader
+from .key_generators import SpacesKeyLoader, SpacesConfig

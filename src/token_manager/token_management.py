@@ -1,13 +1,13 @@
 from .token_encoder_decoder import JWTEncoder, JWTDecoder
 from typing import Optional
-from src.rsa_token_lib import KeyPairGenerator
+from src.rsa_token_lib import KeyLoader
 
 
 class TokenManager:
     """Token management class"""
     def __init__(
             self,
-            key_management: KeyPairGenerator,
+            key_management: KeyLoader,
             encoder: JWTEncoder,
             decoder: JWTDecoder,
     ):
