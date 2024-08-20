@@ -1,117 +1,118 @@
 import unittest
-import os
+from unittest.mock import Mock, patch
+from botocore.exceptions import ClientError
 from cryptography.hazmat.primitives.asymmetric import rsa
-from src.rsa_token_lib.key_generators import RSAKeyPairGenerator, \
-    PEMKeySerializer, FileKeyPersistence, AppConfig
+from src.rsa_token_lib import SpacesConfig, SpacesKeyLoader
 
 
-class TestRSAKeyPairGenerator(unittest.TestCase):
+class TestSpacesKeyLoader(unittest.TestCase):
+
     def setUp(self):
-        self.key_serializer = PEMKeySerializer()
-        self.key_persistence = FileKeyPersistence()
-        self.generator = RSAKeyPairGenerator(self.key_serializer,
-                                             self.key_persistence)
-        self.config = AppConfig()
-
-    def test_default_key_generation(self):
-        private_key, public_key = self.generator.generate_keys()
-
-        # ---------------------------------------------------------------------
-        # Verify that the keys are the correct type
-        # ---------------------------------------------------------------------
-        self.assertIsInstance(private_key, rsa.RSAPrivateKey)
-        self.assertIsInstance(public_key, rsa.RSAPublicKey)
-
-    def test_generate_and_save_keys(self):
-        private_key, public_key = self.generator.generate_and_save_keys(
-            self.config.private_key_path,
-            self.config.public_key_path,
-            self.config.key_password
+        self.config = SpacesConfig(
+            spaces_bucket="test-bucket",
+            spaces_region="nyc3",
+            access_key_id="test-access-key",
+            secret_access_key="test-secret-key",
+            private_key_name="private_key.pem",
+            public_key_name="public_key.pem"
         )
 
-        # ---------------------------------------------------------------------
-        # Verify that the keys were generated and saved correctly
-        # ---------------------------------------------------------------------
-        self.assertTrue(os.path.exists(self.config.private_key_path))
-        self.assertTrue(os.path.exists(self.config.public_key_path))
+    @patch('boto3.session.Session')
+    def test_init_validates_bucket(self, mock_session):
+        mock_client = Mock()
+        mock_session.return_value.client.return_value = mock_client
+        mock_client.head_bucket.return_value = True
 
-    def test_load_and_extract_keys(self):
-        self.generator.generate_and_save_keys(
-            self.config.private_key_path,
-            self.config.public_key_path,
-            self.config.key_password
+        SpacesKeyLoader(self.config)
+
+        mock_client.head_bucket.assert_called_once_with(Bucket="test-bucket")
+
+    @patch('boto3.session.Session')
+    def test_init_raises_value_error_on_404(self, mock_session):
+        mock_client = Mock()
+        mock_session.return_value.client.return_value = mock_client
+        mock_client.head_bucket.side_effect = ClientError(
+            {'Error': {'Code': '404'}},
+            'HeadBucket'
         )
 
-        loaded_private_key, loaded_public_key = self.generator.load_and_extract_keys(
-            self.config.private_key_path,
-            self.config.public_key_path,
-            self.config.key_password
+        with self.assertRaises(ValueError):
+            SpacesKeyLoader(self.config)
+
+    @patch('boto3.session.Session')
+    def test_init_raises_permission_error_on_403(self, mock_session):
+        mock_client = Mock()
+        mock_session.return_value.client.return_value = mock_client
+        mock_client.head_bucket.side_effect = ClientError(
+            {'Error': {'Code': '403'}},
+            'HeadBucket'
         )
 
-        # ---------------------------------------------------------------------
-        # Verify that the loaded keys are the correct type
-        # ---------------------------------------------------------------------
-        self.assertIsInstance(loaded_private_key, rsa.RSAPrivateKey)
-        self.assertIsInstance(loaded_public_key, rsa.RSAPublicKey)
+        with self.assertRaises(PermissionError):
+            SpacesKeyLoader(self.config)
 
-    def tearDown(self):
-        if os.path.exists(self.config.private_key_path):
-            os.remove(self.config.private_key_path)
-        if os.path.exists(self.config.public_key_path):
-            os.remove(self.config.public_key_path)
+    @patch('boto3.session.Session')
+    def test_load_key_success(self, mock_session):
+        mock_client = Mock()
+        mock_session.return_value.client.return_value = mock_client
+        mock_client.head_bucket.return_value = True
+        mock_client.get_object.return_value = {'Body': Mock(read=lambda: b'test-key-data')}
 
+        loader = SpacesKeyLoader(self.config)
+        key_data = loader._load_key("test_key.pem")
 
-class TestPEMKeySerializer(unittest.TestCase):
-    def setUp(self):
-        self.serializer = PEMKeySerializer()
-        self.key_pair = RSAKeyPairGenerator(
-            self.serializer,
-            FileKeyPersistence()
-        ).generate_keys()
+        self.assertEqual(key_data, b'test-key-data')
+        mock_client.get_object.assert_called_once_with(Bucket="test-bucket", Key="test_key.pem")
 
-    def test_serialize_private_key(self):
-        private_key_bytes = self.serializer.serialize_private_key(
-            self.key_pair[0], b'password')
+    @patch('boto3.session.Session')
+    def test_load_key_not_found(self, mock_session):
+        mock_client = Mock()
+        mock_session.return_value.client.return_value = mock_client
+        mock_client.head_bucket.return_value = True
+        mock_client.get_object.side_effect = ClientError(
+            {'Error': {'Code': 'NoSuchKey'}},
+            'GetObject'
+        )
 
-        # ---------------------------------------------------------------------
-        # Verify that the serialized private key is in bytes format
-        # ---------------------------------------------------------------------
-        self.assertIsInstance(private_key_bytes, bytes)
+        loader = SpacesKeyLoader(self.config)
+        with self.assertRaises(FileNotFoundError):
+            loader._load_key("non_existent_key.pem")
 
-    def test_serialize_public_key(self):
-        public_key_bytes = self.serializer.serialize_public_key(
-            self.key_pair[1])
+    @patch('boto3.session.Session')
+    @patch('cryptography.hazmat.primitives.serialization.load_pem_private_key')
+    @patch('cryptography.hazmat.primitives.serialization.load_pem_public_key')
+    def test_load_keys_success(
+            self,
+            mock_load_public,
+            mock_load_private, mock_session
+    ):
+        mock_client = Mock()
+        mock_session.return_value.client.return_value = mock_client
+        mock_client.head_bucket.return_value = True
+        mock_client.get_object.side_effect = [
+            {'Body': Mock(read=lambda: b'private-key-data')},
+            {'Body': Mock(read=lambda: b'public-key-data')}
+        ]
 
-        # ---------------------------------------------------------------------
-        # Verify that the serialized public key is in bytes format
-        # ---------------------------------------------------------------------
-        self.assertIsInstance(public_key_bytes, bytes)
+        mock_private_key = Mock(spec=rsa.RSAPrivateKey)
+        mock_public_key = Mock(spec=rsa.RSAPublicKey)
+        mock_load_private.return_value = mock_private_key
+        mock_load_public.return_value = mock_public_key
 
+        loader = SpacesKeyLoader(self.config)
+        private_key, public_key = loader.load_keys()
 
-class TestFileKeyPersistence(unittest.TestCase):
-    def setUp(self):
-        self.persistence = FileKeyPersistence()
-        self.test_file = 'test_key.pem'
-        self.test_data = b'Test key data'
-
-    def test_save_and_load_key(self):
-        self.persistence.save_key(self.test_data, self.test_file)
-
-        # ---------------------------------------------------------------------
-        # Verify that the key file was created
-        # ---------------------------------------------------------------------
-        self.assertTrue(os.path.exists(self.test_file))
-
-        loaded_data = self.persistence.load_key(self.test_file)
-
-        # ---------------------------------------------------------------------
-        # Verify that the loaded data matches the original data
-        # ---------------------------------------------------------------------
-        self.assertEqual(loaded_data, self.test_data)
-
-    def tearDown(self):
-        if os.path.exists(self.test_file):
-            os.remove(self.test_file)
+        self.assertEqual(private_key, mock_private_key)
+        self.assertEqual(public_key, mock_public_key)
+        mock_load_private.assert_called_once_with(
+            b'private-key-data',
+            password=None,
+            backend=unittest.mock.ANY
+        )
+        mock_load_public.assert_called_once_with(
+            b'public-key-data',
+            backend=unittest.mock.ANY
+        )
 
 
 if __name__ == '__main__':

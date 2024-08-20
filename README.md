@@ -1,4 +1,4 @@
-# Neural Coders Tokens Library
+# Neural Coders Tokens Library 0.0.1
 
 ## How to use
 
@@ -15,9 +15,11 @@ openssl genrsa -out private_key.pem 2048
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
+- Upload the keys to the created bucket 
+- Create an access key and secret access key
+
 ### How to call the library
 
-- Upload the keys to the created bucket 
 - Call the function `TokenCreatorManager` in your python code from this library and use it like: 
 
 ```python
@@ -47,3 +49,15 @@ user_token = token_manager.create_service_token(
     service_id="<service id>"
 )
 ```
+
+### Validate token
+
+```python
+token_validated = token_manager.validate_token(
+    token="<token>"
+)
+```
+
+## Next improvements of the library
+
+- Add logs
