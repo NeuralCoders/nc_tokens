@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 from cryptography.hazmat.primitives.asymmetric import rsa
 from datetime import datetime, timedelta
-from src.token_manager import TokenManager
+from nc_tokens.token_manager import TokenManager
 
 
 class TestTokenManager(unittest.TestCase):

@@ -1,6 +1,6 @@
 from .token_encoder_decoder import JWTEncoder, JWTDecoder
 from typing import Optional
-from src.rsa_token_lib import KeyLoader
+from ..rsa_token_lib import KeyLoader
 
 
 class TokenManager:

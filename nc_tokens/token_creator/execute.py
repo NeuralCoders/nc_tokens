@@ -1,6 +1,6 @@
 from typing import Optional
-from src.rsa_token_lib import SpacesKeyLoader, SpacesConfig
-from src.token_manager import TokenManager, JWTDecoder, JWTEncoder
+from ..rsa_token_lib import SpacesKeyLoader, SpacesConfig
+from ..token_manager import TokenManager, JWTDecoder, JWTEncoder
 from .interfaces import TokenCreator
 
 
