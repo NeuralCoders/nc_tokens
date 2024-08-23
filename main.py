@@ -3,10 +3,10 @@ import datetime
 
 
 token_creator = TokenCreatorManager(
-    spaces_bucket="dev",
+    spaces_bucket="dev-portal-web-esph",
     spaces_region="nyc3",
-    access_key_id="",
-    secret_access_key="",
+    access_key_id="DO00VUJUDJ3RHXHG7FMV",
+    secret_access_key="4z0rpdPqAmysgITyPk+/MYEwoEzMBuqIBvLmECjxpbU",
 )
 
 if __name__ == '__main__':

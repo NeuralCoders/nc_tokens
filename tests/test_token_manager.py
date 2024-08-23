@@ -1,113 +1,104 @@
 import unittest
 from unittest.mock import Mock, patch
-from cryptography.hazmat.primitives.asymmetric import rsa
 from datetime import datetime, timedelta
+from cryptography.hazmat.primitives.asymmetric import rsa
+from nc_tokens.token_manager import JWTEncoder, JWTDecoder
+from nc_tokens.rsa_token_lib import KeyLoader
 from nc_tokens.token_manager import TokenManager
 
 
 class TestTokenManager(unittest.TestCase):
 
     def setUp(self):
-        self.key_loader = Mock()
-        self.encoder = Mock()
-        self.decoder = Mock()
-        self.private_key = Mock(spec=rsa.RSAPrivateKey)
-        self.public_key = Mock(spec=rsa.RSAPublicKey)
+        self.mock_key_loader = Mock(spec=KeyLoader)
+        self.mock_encoder = Mock(spec=JWTEncoder)
+        self.mock_decoder = Mock(spec=JWTDecoder)
 
-        self.key_loader.load_keys.return_value = (
-        self.private_key, self.public_key)
+        self.mock_private_key = Mock(spec=rsa.RSAPrivateKey)
+        self.mock_public_key = Mock(spec=rsa.RSAPublicKey)
 
-        self.token_manager = TokenManager(self.key_loader, self.encoder,
-                                          self.decoder)
+        self.mock_key_loader.load_keys.return_value = (
+            self.mock_private_key, self.mock_public_key
+        )
 
-    def test_init_loads_keys(self):
-        self.key_loader.load_keys.assert_called_once()
-        self.assertEqual(self.token_manager.private_key, self.private_key)
-        self.assertEqual(self.token_manager.public_key, self.public_key)
+        self.token_manager = TokenManager(self.mock_key_loader,
+                                          self.mock_encoder, self.mock_decoder)
+
+    def test_init(self):
+        self.assertEqual(self.token_manager.private_key, self.mock_private_key)
+        self.assertEqual(self.token_manager.public_key, self.mock_public_key)
+        self.mock_key_loader.load_keys.assert_called_once()
 
     def test_create_user_token(self):
-        username = "testuser"
-        password = "testpass"
-        expected_token = "user_token"
+        payload = {
+            "iss": "test_issuer",
+            "sub": "test_subject",
+            "aud": "test_audience",
+            "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp()),
+            "iat": int(datetime.utcnow().timestamp()),
+            "nbf": int(datetime.utcnow().timestamp()),
+            "token_type": "user"
+        }
+        expected_token = "test_user_token"
+        self.mock_encoder.encode.return_value = expected_token
 
-        self.encoder.encode.return_value = expected_token
+        result = self.token_manager.create_user_token(payload)
 
-        token = self.token_manager.create_user_token(username, password)
-
-        self.encoder.encode.assert_called_once_with(
-            {"user_id": username, "username": password},
-            self.private_key,
-            token_type='user'
+        self.assertEqual(result, expected_token)
+        self.mock_encoder.encode.assert_called_once_with(
+            payload,
+            self.mock_private_key,
+            token_type="user"
         )
-        self.assertEqual(token, expected_token)
 
     def test_create_service_token(self):
-        service_id = "test_service"
-        expected_token = "service_token"
+        payload = {
+            "iss": "test_issuer",
+            "sub": "test_subject",
+            "aud": "test_audience",
+            "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp()),
+            "iat": int(datetime.utcnow().timestamp()),
+            "nbf": int(datetime.utcnow().timestamp()),
+            "service_name": "test_service",
+            "token_type": "service"
+        }
+        expected_token = "test_service_token"
+        self.mock_encoder.encode.return_value = expected_token
 
-        self.encoder.encode.return_value = expected_token
+        result = self.token_manager.create_service_token(payload)
 
-        token = self.token_manager.create_service_token(service_id)
-
-        self.encoder.encode.assert_called_once_with(
-            {"service_id": service_id},
-            self.private_key,
-            token_type='service'
-        )
-        self.assertEqual(token, expected_token)
-
-    def test_validate_token_valid(self):
-        valid_token = "valid_token"
-        self.decoder.decode.return_value = {"some": "payload"}
-
-        result = self.token_manager.validate_token(valid_token)
-
-        self.decoder.decode.assert_called_once_with(valid_token,
-                                                    self.public_key)
-        self.assertTrue(result)
-
-    def test_validate_token_invalid(self):
-        invalid_token = "invalid_token"
-        self.decoder.decode.side_effect = ValueError("Invalid token")
-
-        result = self.token_manager.validate_token(invalid_token)
-
-        self.decoder.decode.assert_called_once_with(invalid_token,
-                                                    self.public_key)
-        self.assertFalse(result)
-
-    @patch('datetime.datetime')  # Asegúrate de que la ruta de importación sea correcta
-    def test_token_expiration(self, mock_datetime):
-        now = datetime.utcnow()
-        mock_datetime.utcnow.return_value = now
-
-        self.token_manager.create_user_token("user", "pass")
-        self.encoder.encode.assert_called_with(
-            {"user_id": "user", "username": "pass"},
-            self.private_key,
-            token_type='user'
+        self.assertEqual(result, expected_token)
+        self.mock_encoder.encode.assert_called_once_with(
+            payload,
+            self.mock_private_key,
+            token_type="service"
         )
 
-        mock_datetime.utcnow.return_value = now + timedelta(seconds=11)
+    def test_validate_token_success(self):
+        token = "valid_token"
+        expected_payload = {"sub": "test_subject", "exp": int(
+            (datetime.utcnow() + timedelta(hours=1)).timestamp())}
+        self.mock_decoder.decode.return_value = expected_payload
 
-        self.decoder.decode.side_effect = ValueError("Token has expired")
-        result = self.token_manager.validate_token("expired_token")
-        self.assertFalse(result)
+        result = self.token_manager.validate_token(token)
 
-        mock_datetime.utcnow.return_value = now
-        self.token_manager.create_service_token("service")
-        self.encoder.encode.assert_called_with(
-            {"service_id": "service"},
-            self.private_key,
-            token_type='service'
+        self.assertEqual(result, expected_payload)
+        self.mock_decoder.decode.assert_called_once_with(
+            token,
+            self.mock_public_key
         )
 
-        mock_datetime.utcnow.return_value = now + timedelta(minutes=14)
+    def test_validate_token_failure(self):
+        token = "invalid_token"
+        self.mock_decoder.decode.side_effect = ValueError("Token has expired")
 
-        self.decoder.decode.side_effect = None
-        self.decoder.decode.return_value = {"service_id": "service"}
-        result = self.token_manager.validate_token("service_token")
-        self.assertTrue(result)
+        result = self.token_manager.validate_token(token)
+
+        self.assertEqual(result, {'error': 'Token has expired'})
+        self.mock_decoder.decode.assert_called_once_with(
+            token,
+            self.mock_public_key
+        )
 
 
 if __name__ == '__main__':

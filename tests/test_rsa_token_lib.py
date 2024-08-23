@@ -56,13 +56,18 @@ class TestSpacesKeyLoader(unittest.TestCase):
         mock_client = Mock()
         mock_session.return_value.client.return_value = mock_client
         mock_client.head_bucket.return_value = True
-        mock_client.get_object.return_value = {'Body': Mock(read=lambda: b'test-key-data')}
+        mock_client.get_object.return_value = {'Body': Mock(
+            read=lambda: b'test-key-data')
+        }
 
         loader = SpacesKeyLoader(self.config)
         key_data = loader._load_key("test_key.pem")
 
         self.assertEqual(key_data, b'test-key-data')
-        mock_client.get_object.assert_called_once_with(Bucket="test-bucket", Key="test_key.pem")
+        mock_client.get_object.assert_called_once_with(
+            Bucket="test-bucket",
+            Key="test_key.pem"
+        )
 
     @patch('boto3.session.Session')
     def test_load_key_not_found(self, mock_session):
