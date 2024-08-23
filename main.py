@@ -1,5 +1,4 @@
 from nc_tokens.token_creator import TokenCreatorManager
-import datetime
 
 
 token_creator = TokenCreatorManager(
