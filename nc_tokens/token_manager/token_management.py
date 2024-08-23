@@ -1,3 +1,5 @@
+import datetime
+
 from .token_encoder_decoder import JWTEncoder, JWTDecoder
 from typing import Optional
 from ..rsa_token_lib import KeyLoader
@@ -25,46 +27,66 @@ class TokenManager:
         """
         self.private_key, self.public_key = self.key_management.load_keys()
 
-    def create_user_token(self, username: str, password: str) -> Optional[str]:
+    def create_user_token(self, payload: dict) -> Optional[str]:
         """
-        Creates a new user token with the given username and password.
-        :param username: username
-        :param password: password
+        Creates a new user token with the given payload
+
+        example:
+
+        payload = {
+            "iss": "iss",
+            "sub": "sub",
+            "aud": "jti",
+            "exp": datetime.datetime.timestamp(),
+            "iat": 128937218974,
+            "nbf": "bf",
+            "token_type": "user"
+        }
+
+        :param payload:
         :return: encoded token or None if authentication fails
         """
-        payload = {
-            "user_id": username,
-            "username": password,
-        }
         return self.encoder.encode(
             payload,
             self.private_key,
-            token_type='user'
+            token_type=payload["token_type"]
         )
 
-    def create_service_token(self, service_id: str) -> str:
+    def create_service_token(self, payload: dict) -> str:
         """
-        Creates a new service token with the given service ID.
-        :param service_id: unique identifier for the service
+        Creates a new service token with the given payload
+
+        example:
+
+        payload = {
+            "iss": "iss",
+            "sub": "sub",
+            "aud": "jti",
+            "exp": datetime.datetime.timestamp(),
+            "iat": 128937218974,
+            "nbf": "bf",
+            "service_name": "service_name",
+            "token_type": "service"
+        }
+
+        :param payload:
         :return: encoded token
         """
-        payload = {
-            "service_id": service_id,
-        }
         return self.encoder.encode(
             payload,
             self.private_key,
-            token_type='service'
+            token_type=payload['token_type']
         )
 
-    def validate_token(self, token: str) -> bool:
+    def validate_token(self, token: str) -> dict:
         """
         Validates the given token.
         :param token: token to validate
         :return: True if the token is valid, False otherwise
         """
         try:
-            self.decoder.decode(token, self.public_key)
-            return True
-        except ValueError:
-            return False
+            return self.decoder.decode(token, self.public_key)
+        except ValueError as error:
+            return {
+                'error': str(error)
+            }

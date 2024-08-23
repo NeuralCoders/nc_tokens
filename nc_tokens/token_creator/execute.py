@@ -2,6 +2,7 @@ from typing import Optional
 from ..rsa_token_lib import SpacesKeyLoader, SpacesConfig
 from ..token_manager import TokenManager, JWTDecoder, JWTEncoder
 from .interfaces import TokenCreator
+import datetime
 
 
 class TokenCreatorManager(TokenCreator):
@@ -32,11 +33,11 @@ class TokenCreatorManager(TokenCreator):
             self.decoder
         )
 
-    def create_user_token(self, username: str, password: str) -> Optional[str]:
-        return self.token_manager.create_user_token(username, password)
+    def create_user_token(self, payload: dict) -> Optional[str]:
+        return self.token_manager.create_user_token(payload=payload)
 
-    def create_service_token(self, service_id: str) -> Optional[str]:
-        return self.token_manager.create_service_token(service_id)
+    def create_service_token(self, payload: dict) -> Optional[str]:
+        return self.token_manager.create_service_token(payload=payload)
 
-    def validate_token(self, token: str) -> bool:
+    def validate_token(self, token: str) -> dict:
         return self.token_manager.validate_token(token)

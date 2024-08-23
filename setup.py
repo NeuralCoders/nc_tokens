@@ -8,7 +8,8 @@ setup(
     version="0.0.1",
     author="Neural Coders - Jorge Zapata",
     author_email="jorge.zapata@neuralcoders.com",
-    description="Create service and user tokens for microservices",
+    description="Create service and user tokens for microservices, "
+                "https://neuralcoders.com",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/NeuralCoders/nc_tokens",
