@@ -68,9 +68,6 @@ class JWTEncoder(TokenEncoder):
         :param token_type: 'service' or 'user'
         :return: encoded string payload
         """
-        expiration_time = self._calculate_expiration_time(token_type)
-        payload['exp'] = expiration_time
-
         header = self._create_header()
         encoded_header, encoded_payload = self._encode_parts(header, payload)
         signature_input = f"{encoded_header}.{encoded_payload}".encode()
@@ -78,21 +75,6 @@ class JWTEncoder(TokenEncoder):
             signature_input, private_key
         )
         return f"{encoded_header}.{encoded_payload}.{encoded_signature}"
-
-    @staticmethod
-    def _calculate_expiration_time(token_type: str) -> int:
-        """
-        Calculate expiration time based on token type.
-        :param token_type: 'service' or 'user'
-        :return: expiration time as Unix timestamp
-        """
-        if token_type == 'service':
-            expiration = datetime.utcnow() + timedelta(minutes=15)
-        elif token_type == 'user':
-            expiration = datetime.utcnow() + timedelta(seconds=10)
-        else:
-            raise ValueError("Invalid token type")
-        return int(expiration.timestamp())
 
 
 class JWTDecoder(TokenDecoder):
@@ -182,5 +164,5 @@ class JWTDecoder(TokenDecoder):
         if not exp:
             raise ValueError("Token has no expiration")
 
-        if int(datetime.utcnow().timestamp()) > exp:
+        if int(datetime.utcnow().timestamp() * 1000) >= exp:
             raise ValueError("Token has expired")

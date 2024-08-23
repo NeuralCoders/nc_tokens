@@ -42,18 +42,36 @@ token_manager = TokenCreatorManager(
 ### Create a user token
 
 ```python
-user_token = token_manager.create_user_token(
-    username="<your username>",
-    password="<your password>"
-)
+payload = {
+    "iss": "iss",
+    "sub": "sub",
+    "aud": "jti",
+    "exp": 1724377087629,
+    "iat": 128937218974,
+    "nbf": "bf",
+    "token_type": "user"
+}
+
+token = token_creator.create_user_token(payload)
+token_decoded = token_creator.validate_token(token)
 ```
 
 ### Create a service token
 
 ```python
-user_token = token_manager.create_service_token(
-    service_id="<service id>"
-)
+service_payload = {
+    "iss": "iss",
+    "sub": "sub",
+    "aud": "jti",
+    "exp": 2724377087629,
+    "iat": 1724377087629,
+    "nbf": "bf",
+    "service_name": "service_name",
+    "token_type": "service"
+}
+
+token = token_creator.create_service_token(service_payload)
+token_decoded = token_creator.validate_token(token)
 ```
 
 ### Validate token
